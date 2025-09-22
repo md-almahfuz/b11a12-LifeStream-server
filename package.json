@@ -1,10 +1,11 @@
 {
-  "name": "b11a10-cultivate-joy-server",
+  "name": "b11a12-life-stream-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
