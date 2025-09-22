@@ -66,7 +66,7 @@ const verifyFirebaseToken = async (req, res, next) => {
 
 async function run() {
     try {
-        await client.connect();
+        //await client.connect();
 
         const userCollection = client.db("LifeStream").collection("Users"); // Correct collection reference
         const requestCollection = client.db("LifeStream").collection("Requests"); // Correct collection reference
@@ -123,7 +123,7 @@ async function run() {
 
                 const result = await userCollection.find().toArray();
 
-                console.log(`Fetched ${result.length} users from the database):`, result);
+                // console.log(`Fetched ${result.length} users from the database):`, result);
                 res.status(200).json(result); // Use .json() for sending JSON data
             } catch (error) {
                 console.error("Error fetching all users:", error);
@@ -136,7 +136,7 @@ async function run() {
             try {
                 const userFromToken = req.firebaseUser; // User data from the verified Firebase token
                 const dbUser = await userCollection.findOne({ uid: userFromToken.uid });
-                console.log(`User role from token: ${dbUser.role}`);
+                // console.log(`User role from token: ${dbUser.role}`);
 
                 if (!dbUser) {
                     console.warn(`Unauthorized access attempt to /admin/stats/users by UID: ${userFromToken.uid || 'N/A'}`);
@@ -206,7 +206,7 @@ async function run() {
         app.post('/save-donation', async (req, res) => {
             try {
                 const donationData = req.body;
-                console.log('Received new donation data:', donationData);
+                //console.log('Received new donation data:', donationData);
                 const result = await donationCollection.insertOne(donationData);
                 res.status(201).json({ message: 'User data saved successfully', insertedId: result.insertedId, data: donationData });
             } catch (error) {
@@ -226,7 +226,7 @@ async function run() {
                         }
                     }
                 ]).toArray();
-                console.log('Total donations aggregation result:', result);
+                // console.log('Total donations aggregation result:', result);
 
                 // Check if there are any results
                 if (result.length > 0) {
@@ -270,7 +270,7 @@ async function run() {
                 const userToUpdateUid = req.params.uid;
                 const { role, status } = req.body;
 
-                console.log(`Received request to update user role for UID: ${userToUpdateUid} with role: ${role} and status: ${status}`);
+                //  console.log(`Received request to update user role for UID: ${userToUpdateUid} with role: ${role} and status: ${status}`);
 
                 const userFromToken = req.firebaseUser;
                 const dbUser = await userCollection.findOne({ uid: userFromToken.uid });
@@ -298,7 +298,7 @@ async function run() {
                 };
 
                 const result = await userCollection.updateOne(filter, updateDoc);
-                console.log(`Update result for UID ${userToUpdateUid}:`, result);
+                // console.log(`Update result for UID ${userToUpdateUid}:`, result);
 
                 if (result.matchedCount === 0) {
                     return res.status(404).send({ message: "User not found for update." });
@@ -405,7 +405,7 @@ async function run() {
                 };
 
                 const result = await userCollection.updateOne(filter, updateDoc);
-                console.log(`Status update result for ID ${userToUpdateId}:`, result);
+                //console.log(`Status update result for ID ${userToUpdateId}:`, result);
 
                 if (result.matchedCount === 0) {
                     return res.status(404).send({ message: "User not found for update." });
@@ -423,7 +423,7 @@ async function run() {
         app.post('/create-donation-request', async (req, res) => {
             try {
                 const requestData = req.body;
-                console.log('Received new donation request:', requestData);
+                // console.log('Received new donation request:', requestData);
                 const result = await requestCollection.insertOne(requestData);
                 res.status(201).json({ message: 'User data saved successfully', insertedId: result.insertedId, data: requestData });
             } catch (error) {
@@ -438,7 +438,7 @@ async function run() {
                 const userFromToken = req.firebaseUser;
                 const blogData = req.body;
 
-                console.log(`Received new blog data from UID: ${userFromToken.uid}`);
+                // console.log(`Received new blog data from UID: ${userFromToken.uid}`);
 
                 const dbUser = await userCollection.findOne({ uid: userFromToken.uid });
 
@@ -468,7 +468,7 @@ async function run() {
                     .toArray();
 
                 res.status(200).json(allBlogs);
-                console.log(`Fetched ${allBlogs.length} blog posts from the database.`);
+                // console.log(`Fetched ${allBlogs.length} blog posts from the database.`);
             } catch (error) {
                 console.error('Error fetching blog posts:', error);
                 res.status(500).json({ message: 'Failed to fetch blog posts', error: error.message });
@@ -546,6 +546,7 @@ async function run() {
             }
         });
 
+        // Fetch recent donation requests for a specific user (limited to 3)
         app.get('/donationRequests/recent/:uid', verifyFirebaseToken, async (req, res) => {
             const userIdFromParams = req.params.uid;
             const userIdFromToken = req.firebaseUser.uid;
@@ -567,7 +568,7 @@ async function run() {
             }
         });
 
-
+        // Fetch a single donation request by its ID
         app.get(`/donationRequests/:id`, verifyFirebaseToken, async (req, res) => {
             const requestId = req.params.id;
             const userIdFromToken = req.firebaseUser.uid;
@@ -585,6 +586,7 @@ async function run() {
             }
         });
 
+        // Fetch all donation requests made by a specific user
         app.get('/my-donation-requests/:id', verifyFirebaseToken, async (req, res) => {
             const userIdFromParams = req.params.id;
             const userIdFromToken = req.firebaseUser.uid;
@@ -606,6 +608,7 @@ async function run() {
             }
         });
 
+        // Fetch all donation requests (admin/volunteer only)
         app.get('/all-donation-requests', verifyFirebaseToken, async (req, res) => {
 
             try {
@@ -620,6 +623,7 @@ async function run() {
             }
         });
 
+        // Fetch recent pending donation requests (limited to 10)
         app.get('/pendingRequests', async (req, res) => {
 
             try {
@@ -629,13 +633,14 @@ async function run() {
                     .toArray();
 
                 res.status(200).json(recentRequests);
-                console.log(`Fetched ${recentRequests.length} pending requests from the database.`);
+                //  console.log(`Fetched ${recentRequests.length} pending requests from the database.`);
             } catch (error) {
                 console.error('Backend: Error fetching recent donation requests:', error);
                 res.status(500).json({ message: 'Failed to fetch recent donation requests', error: error.message });
             }
         });
 
+        // Endpoint to get the total count of all donation requests (for admin purposes, protected)
         app.get('/all-donation-requests-count', verifyFirebaseToken, async (req, res) => {
 
             try {
@@ -678,6 +683,7 @@ async function run() {
         //     }
         // });
 
+        // Endpoint to edit a donation request
         app.put('/editDonationRequest/:id', verifyFirebaseToken, async (req, res) => {
             const requestId = req.params.id;
             const userIdFromToken = req.firebaseUser.uid;
@@ -798,7 +804,7 @@ async function run() {
                     console.error('Invalid amount received for payment intent:', amount);
                     return res.status(400).json({ message: 'Invalid amount.' });
                 }
-                console.log(`Creating a PaymentIntent for amount: $${(amount / 100).toFixed(2)}`);
+                // console.log(`Creating a PaymentIntent for amount: $${(amount / 100).toFixed(2)}`);
                 const paymentIntent = await stripe.paymentIntents.create({
                     amount: amount,
                     currency: 'usd',
