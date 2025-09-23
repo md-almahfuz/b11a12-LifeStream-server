@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 
 // --- IMPORTANT: Configure CORS for your frontend URL ---
 const corsOptions = {
-    origin: ['http://localhost:5173', 'https://your-frontend-domain.com'], // Add your frontend domain here
+    origin: ['http://localhost:5173', 'https://aesthetic-tartufo-1f95c1.netlify.app'], // Add your frontend domain here
     credentials: true,
     optionsSuccessStatus: 200
 };

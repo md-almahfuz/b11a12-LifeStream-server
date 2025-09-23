@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 
 // --- IMPORTANT: Configure CORS for your frontend URL ---
 const corsOptions = {
-    origin: ['http://localhost:5173', 'https://your-frontend-domain.com'], // Add your frontend domain here
+    origin: ['http://localhost:5173', 'https://aesthetic-tartufo-1f95c1.netlify.app'], // Add your frontend domain here
     credentials: true,
     optionsSuccessStatus: 200
 };
@@ -683,11 +683,65 @@ async function run() {
         //     }
         // });
 
+
         // Endpoint to edit a donation request
+        // app.put('/editDonationRequest/:id', verifyFirebaseToken, async (req, res) => {
+        //     const requestId = req.params.id;
+        //     const userIdFromToken = req.firebaseUser.uid;
+        //     const updatedData = req.body; // The updated data sent from the frontend
+
+        //     try {
+        //         const query = { _id: new ObjectId(requestId) };
+        //         const request = await requestCollection.findOne(query);
+
+        //         if (!request) {
+        //             return res.status(404).json({ message: "Donation request not found." });
+        //         }
+
+        //         // Fetch the user's role from the database
+        //         const dbUser = await userCollection.findOne({ uid: userIdFromToken });
+        //         const userRole = dbUser ? dbUser.role : 'donor';
+
+        //         const isOwner = request.uid === userIdFromToken;
+        //         const isAdmin = userRole === 'admin';
+
+        //         if (!isOwner && !isAdmin) {
+        //             console.warn(`Forbidden edit attempt on request ${requestId} by user ${userIdFromToken} (role: ${userRole}).`);
+        //             return res.status(403).json({ message: "Forbidden: You do not have permission to edit this request." });
+        //         }
+
+        //         // Define the fields that are allowed to be updated.
+        //         const updatableFields = ['recipientName', 'recipientEmail', 'recipientDistrict', 'recipientUpazila', 'bloodGroup', 'hospitalName', 'fullAddress', 'donorName', 'donorEmail', 'donationDate', 'donationTime', 'donationStatus'];
+        //         const updateDoc = { $set: {} };
+
+        //         // Populate the update document with allowed fields from the request body
+        //         updatableFields.forEach(field => {
+        //             if (updatedData[field] !== undefined) {
+        //                 updateDoc.$set[field] = updatedData[field];
+        //             }
+        //         });
+
+        //         // Add a timestamp for the update
+        //         updateDoc.$set.updatedAt = new Date();
+
+        //         const result = await requestCollection.updateOne(query, updateDoc);
+
+        //         if (result.matchedCount === 0) {
+        //             return res.status(404).json({ message: "Donation request not found or no changes were made." });
+        //         }
+
+        //         res.status(200).json({ message: "Donation request updated successfully." });
+
+        //     } catch (error) {
+        //         console.error('Backend: Error updating donation request:', error);
+        //         res.status(500).json({ message: 'Failed to update donation request', error: error.message });
+        //     }
+        // });
+
         app.put('/editDonationRequest/:id', verifyFirebaseToken, async (req, res) => {
             const requestId = req.params.id;
             const userIdFromToken = req.firebaseUser.uid;
-            const updatedData = req.body; // The updated data sent from the frontend
+            const updatedData = req.body;
 
             try {
                 const query = { _id: new ObjectId(requestId) };
@@ -697,30 +751,56 @@ async function run() {
                     return res.status(404).json({ message: "Donation request not found." });
                 }
 
-                // Fetch the user's role from the database
+                // Fetch the user's role
                 const dbUser = await userCollection.findOne({ uid: userIdFromToken });
                 const userRole = dbUser ? dbUser.role : 'donor';
 
                 const isOwner = request.uid === userIdFromToken;
                 const isAdmin = userRole === 'admin';
+                const isVolunteer = userRole === 'volunteer';
 
-                if (!isOwner && !isAdmin) {
-                    console.warn(`Forbidden edit attempt on request ${requestId} by user ${userIdFromToken} (role: ${userRole}).`);
+                if (!isOwner && !isAdmin && !isVolunteer) {
+                    console.warn(
+                        `Forbidden edit attempt on request ${requestId} by user ${userIdFromToken} (role: ${userRole}).`
+                    );
                     return res.status(403).json({ message: "Forbidden: You do not have permission to edit this request." });
                 }
 
-                // Define the fields that are allowed to be updated.
-                const updatableFields = ['recipientName', 'recipientEmail', 'recipientDistrict', 'recipientUpazila', 'bloodGroup', 'hospitalName', 'fullAddress', 'donorName', 'donorEmail', 'donationDate', 'donationTime', 'donationStatus'];
+                // Define fields based on role
+                let updatableFields;
+                if (isAdmin || isOwner) {
+                    updatableFields = [
+                        'recipientName',
+                        'recipientEmail',
+                        'recipientDistrict',
+                        'recipientUpazila',
+                        'bloodGroup',
+                        'hospitalName',
+                        'fullAddress',
+                        'donorName',
+                        'donorEmail',
+                        'donationDate',
+                        'donationTime',
+                        'donationStatus'
+                    ];
+                } else if (isVolunteer) {
+                    updatableFields = ['donationStatus']; // Only donationStatus allowed
+                }
+
                 const updateDoc = { $set: {} };
 
-                // Populate the update document with allowed fields from the request body
+                // Only pick allowed fields, ignore others
                 updatableFields.forEach(field => {
                     if (updatedData[field] !== undefined) {
                         updateDoc.$set[field] = updatedData[field];
                     }
                 });
 
-                // Add a timestamp for the update
+                // If volunteer sent no donationStatus, block
+                if (isVolunteer && !updateDoc.$set.donationStatus) {
+                    return res.status(400).json({ message: "Volunteers can only update donationStatus." });
+                }
+
                 updateDoc.$set.updatedAt = new Date();
 
                 const result = await requestCollection.updateOne(query, updateDoc);
@@ -736,6 +816,8 @@ async function run() {
                 res.status(500).json({ message: 'Failed to update donation request', error: error.message });
             }
         });
+
+
 
         // Endpoint to update a donation request to 'pending' status with donor information
         // This endpoint is used when a donor claims a donation request.
@@ -828,6 +910,8 @@ async function run() {
     }
 }
 run().catch(console.dir);
+
+//module.exports = app;
 
 
 // Start the Express server
